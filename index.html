@@ -6,8 +6,8 @@
     <title>Simulador Interativo de Agentes e Guardrails de IA</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Lucide Icons (URL corrigida para build UMD compatível com navegador) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -255,8 +255,12 @@
     </footer>
 
     <script>
-        // Inicializar Lucide Icons
-        lucide.createIcons();
+        // Função segura para renderizar ícones Lucide
+        function initIcons() {
+            if (window.lucide && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        }
 
         // Alternar Abas
         function switchTab(tabId) {
@@ -268,8 +272,10 @@
 
             document.getElementById(tabId).classList.remove('hidden');
             const activeBtn = document.getElementById('btn-' + tabId);
-            activeBtn.classList.add('bg-indigo-600', 'text-white');
-            activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-600', 'text-white');
+                activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            }
 
             atualizarPreviews();
         }
@@ -361,22 +367,43 @@ Este projeto requer uma chave de API para ser executado com o modelo Gemini real
             }
         }
 
-        // Copiar README para a área de transferência
+        // Copiar README para a área de transferência com fallback
         function copiarReadme() {
             const readmeText = document.getElementById('code-readme').textContent;
-            navigator.clipboard.writeText(readmeText);
+            let success = false;
+
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = readmeText;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                success = document.execCommand('copy');
+                document.body.removeChild(textarea);
+            } catch (err) {
+                console.warn('execCommand failed, attempting navigator.clipboard', err);
+            }
+
+            if (!success && navigator.clipboard) {
+                navigator.clipboard.writeText(readmeText).catch(e => console.error(e));
+            }
+
             const btnText = document.getElementById('txt-copiar');
             btnText.textContent = "Copiado!";
             setTimeout(() => { btnText.textContent = "Copiar Markdown"; }, 2000);
         }
 
-        // Escutar alterações nos campos
-        document.querySelectorAll('input, textarea, select').forEach(element => {
-            element.addEventListener('input', atualizarPreviews);
-        });
+        // Inicialização quando a página carrega
+        window.addEventListener('DOMContentLoaded', () => {
+            initIcons();
+            atualizarPreviews();
 
-        // Inicializar na carga da página
-        atualizarPreviews();
+            // Escutar alterações nos campos em tempo real
+            document.querySelectorAll('input, textarea, select').forEach(element => {
+                element.addEventListener('input', atualizarPreviews);
+            });
+        });
     </script>
 </body>
 </html>
